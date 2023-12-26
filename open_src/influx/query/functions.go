@@ -6,8 +6,6 @@ This code is originally from: https://github.com/influxdata/influxdb/blob/1.7/qu
 */
 
 import (
-	"fmt"
-
 	"github.com/openGemini/openGemini/open_src/influx/influxql"
 )
 
@@ -110,107 +108,14 @@ func (m FunctionTypeMapper) CallType(name string, args []influxql.DataType) (inf
 		return influxql.Float, nil
 	case "abs", "round", "ceil", "floor", "row_max":
 		return args[0], nil
-	case "str":
-		return StrCallType(name, args)
-	case "strlen":
-		return StrLenCallType(name, args)
-	case "substr":
-		return SubStrCallType(name, args)
+	// case "str":
+	// 	return StrCallType(name, args)
+	// case "strlen":
+	// 	return StrLenCallType(name, args)
+	// case "substr":
+	// 	return SubStrCallType(name, args)
 	default:
 		// TODO(jsternberg): Do not use default for this.
 		return influxql.Unknown, nil
-	}
-}
-
-type StringFunctionTypeMapper struct{}
-
-func (m StringFunctionTypeMapper) MapType(_ *influxql.Measurement, _ string) influxql.DataType {
-	return influxql.Unknown
-}
-
-func (m StringFunctionTypeMapper) MapTypeBatch(_ *influxql.Measurement, _ map[string]*influxql.FieldNameSpace, _ *influxql.Schema) error {
-	return nil
-}
-
-func (m StringFunctionTypeMapper) CallType(name string, _ []influxql.DataType) (influxql.DataType, error) {
-	switch name {
-	case "str":
-		return influxql.Boolean, nil
-	case "strlen":
-		return influxql.Integer, nil
-	case "substr":
-		return influxql.String, nil
-	default:
-		return influxql.Unknown, nil
-	}
-}
-
-func StrCallType(name string, args []influxql.DataType) (influxql.DataType, error) {
-	var arg0, arg1 influxql.DataType
-	if len(args) != 2 {
-		return influxql.Unknown, fmt.Errorf("invalid argument number in %s(): %d", name, len(args))
-	}
-	arg0, arg1 = args[0], args[1]
-
-	switch arg0 {
-	case influxql.String:
-		// Pass through to verify the second argument.
-	default:
-		return influxql.Unknown, fmt.Errorf("invalid argument type for the first argument in %s(): %s", name, arg0)
-	}
-
-	switch arg1 {
-	case influxql.String:
-		return influxql.Boolean, nil
-	default:
-		return influxql.Unknown, fmt.Errorf("invalid argument type for the second argument in %s(): %s", name, arg0)
-	}
-}
-
-func StrLenCallType(name string, args []influxql.DataType) (influxql.DataType, error) {
-	var arg0 influxql.DataType
-	if len(args) != 1 {
-		return influxql.Unknown, fmt.Errorf("invalid argument number in %s(): %d", name, len(args))
-	}
-	arg0 = args[0]
-	switch arg0 {
-	case influxql.String:
-		return influxql.Integer, nil
-	default:
-		return influxql.Unknown, fmt.Errorf("invalid argument type for the first argument in %s(): %s", name, arg0)
-	}
-}
-
-func SubStrCallType(name string, args []influxql.DataType) (influxql.DataType, error) {
-	var arg0, arg1, arg2 influxql.DataType
-	if len(args) < 2 || len(args) > 3 {
-		return influxql.Unknown, fmt.Errorf("invalid argument number in %s(): %d", name, len(args))
-	}
-	arg0, arg1 = args[0], args[1]
-	if len(args) == 3 {
-		arg2 = args[2]
-	}
-
-	switch arg0 {
-	case influxql.String:
-		// Pass through to verify the second argument.
-	default:
-		return influxql.Unknown, fmt.Errorf("invalid argument type for the first argument in %s(): %s", name, arg0)
-	}
-
-	switch arg1 {
-	case influxql.Integer:
-		if len(args) == 2 {
-			return influxql.String, nil
-		}
-	default:
-		return influxql.Unknown, fmt.Errorf("invalid argument type for the second argument in %s(): %s", name, arg0)
-	}
-
-	switch arg2 {
-	case influxql.Integer:
-		return influxql.String, nil
-	default:
-		return influxql.Unknown, fmt.Errorf("invalid argument type for the third argument in %s(): %s", name, arg0)
 	}
 }

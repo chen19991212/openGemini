@@ -62,7 +62,7 @@ var (
 	_ LogicalPlan = &LogicalJoin{}
 )
 
-var mergeCall = map[string]bool{"percentile": true, "rate": true, "irate": true,
+var mergeCall = map[string]bool{"percentile": true, "rate": true, "irate": true, "rate2": true,
 	"absent": true, "stddev": true, "mode": true, "median": true, "sample": true,
 	"percentile_approx": true,
 }

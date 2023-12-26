@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/openGemini/openGemini/engine/executor/operator"
 	"github.com/openGemini/openGemini/engine/hybridqp"
 	"github.com/openGemini/openGemini/engine/op"
 	"github.com/openGemini/openGemini/lib/errno"
@@ -33,7 +34,7 @@ var NotAggOnSeries = map[string]bool{
 	"percentile": true, "percentile_ogsketch": true, "percentile_approx": true,
 	"difference": true, "non_negative_difference": true,
 	"derivative": true, "non_negative_derivative": true,
-	"rate": true, "irate": true, "absent": true, "stddev": true, "mode": true, "median": true,
+	"rate": true, "irate": true, "rate2": true, "absent": true, "stddev": true, "mode": true, "median": true,
 	"elapsed": true, "moving_average": true, "cumulative_sum": true, "integral": true, "sample": true,
 	"sliding_window": true,
 }
@@ -59,7 +60,7 @@ var DefaultTypeMapper = influxql.MultiTypeMapper(
 	op.TypeMapper{},
 	query.MathTypeMapper{},
 	query.FunctionTypeMapper{},
-	query.StringFunctionTypeMapper{},
+	operator.StringFunctionTypeMapper{},
 )
 
 type QueryTable struct {

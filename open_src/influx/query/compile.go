@@ -443,7 +443,7 @@ func (c *compiledField) compileFunction(expr *influxql.Call) error {
 	switch expr.Name {
 	case "max", "min", "first", "last":
 		// top/bottom are not included here since they are not typical functions.
-	case "count", "sum", "mean", "median", "mode", "stddev", "spread", "rate", "irate", "absent":
+	case "count", "sum", "mean", "median", "mode", "stddev", "spread", "rate", "rate2", "irate", "absent":
 		// These functions are not considered selectors.
 		c.global.OnlySelectors = false
 	default:
@@ -1097,7 +1097,7 @@ func (c *compiledField) validateSelector(expr *influxql.Call) {
 	switch expr.Name {
 	case "max", "min", "first", "last":
 		// top/bottom are not included here since they are not typical functions.
-	case "count", "sum", "mean", "median", "mode", "stddev", "spread", "rate", "irate", "absent":
+	case "count", "sum", "mean", "median", "mode", "stddev", "spread", "rate", "rate2", "irate", "absent":
 		// These functions are not considered selectors.
 		c.global.OnlySelectors = false
 	}

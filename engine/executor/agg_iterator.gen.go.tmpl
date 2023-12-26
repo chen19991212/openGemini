@@ -35,6 +35,22 @@ type {{.Name}}Point struct {
 	isNil bool
 }
 
+func (p *{{.Name}}Point)GetTime() int64{
+	return p.time
+}
+
+func (p *{{.Name}}Point) GetValue() {{.Type}}{
+	return p.value
+}
+
+func (p *{{.Name}}Point) GetIndex() int{
+	return p.index
+}
+
+func (p *{{.Name}}Point) GetIsNil() bool{
+	return p.isNil
+}
+
 func new{{.Name}}Point() *{{.Name}}Point {
 	return &{{.Name}}Point{isNil: true}
 }
@@ -420,7 +436,7 @@ func (r *{{$k.Name}}Col{{$v.Name}}Iterator) processMiddleWindow(
 		outChunk.AppendIntervalIndex(outChunk.Len() - 1)
 	}
 	outChunk.Column(r.outOrdinal).AppendNotNil()
-	outChunk.Column(r.outOrdinal).Append{{$v.Name}}Values(value)
+	outChunk.Column(r.outOrdinal).Append{{$v.Name}}Value(value)
 	if r.auxProcessor != nil {
 		r.appendInAuxCol(inChunk, outChunk, index)
 	}
@@ -606,7 +622,7 @@ func (r *{{$k.Name}}Col{{$v.Name}}Iterator) processMiddleWindow(
 		outChunk.AppendIntervalIndex(outChunk.Len() - 1)
 	}
 	outChunk.Column(r.outOrdinal).AppendNotNil()
-	outChunk.Column(r.outOrdinal).Append{{$v.Name}}Values(value)
+	outChunk.Column(r.outOrdinal).Append{{$v.Name}}Value(value)
 	if r.auxProcessor != nil {
 		r.appendInAuxCol(inChunk, outChunk, index)
 	}
@@ -792,7 +808,7 @@ func (r *{{$k.Name}}Col{{$v.Name}}Iterator) processMiddleWindow(
 		outChunk.AppendIntervalIndex(outChunk.Len() - 1)
 	}
 	outChunk.Column(r.outOrdinal).AppendNotNil()
-	outChunk.Column(r.outOrdinal).Append{{$v.Name}}Values(value)
+	outChunk.Column(r.outOrdinal).Append{{$v.Name}}Value(value)
 	if r.auxProcessor != nil {
 		r.appendInAuxCol(inChunk, outChunk, index)
 	}
@@ -882,7 +898,7 @@ func (r *{{.Name}}TimeCol{{.Name}}Iterator) mergePrevItem(
 	{{- else}}
 	outChunk.Column(r.outOrdinal).AppendStringValue(string(r.prevPoint.value))
 	{{- end}}
-	outChunk.Column(r.outOrdinal).AppendColumnTimes(r.prevPoint.time)
+	outChunk.Column(r.outOrdinal).AppendColumnTime(r.prevPoint.time)
 	outChunk.Column(r.outOrdinal).AppendNotNil()
 }
 
@@ -927,11 +943,11 @@ func (r *{{.Name}}TimeCol{{.Name}}Iterator) processMiddleWindow(
 	inChunk, outChunk Chunk, index int, value {{.Type}},
 ) {
 	if r.initTimeCol {
-		outChunk.Column(r.outOrdinal).AppendColumnTimes(inChunk.Column(r.inOrdinal).ColumnTime(index))
+		outChunk.Column(r.outOrdinal).AppendColumnTime(inChunk.Column(r.inOrdinal).ColumnTime(index))
 	} else {
-		outChunk.Column(r.outOrdinal).AppendColumnTimes(inChunk.TimeByIndex(index))
+		outChunk.Column(r.outOrdinal).AppendColumnTime(inChunk.TimeByIndex(index))
 	}
-	outChunk.Column(r.outOrdinal).Append{{.Name}}Values(value)
+	outChunk.Column(r.outOrdinal).Append{{.Name}}Value(value)
 	outChunk.Column(r.outOrdinal).AppendNotNil()
 }
 
@@ -1232,7 +1248,7 @@ func (r *{{.Name}}Col{{.Name}}SliceIterator) assembleCurrItem(
             outChunk.AppendIntervalIndex(outChunk.Len() - 1)
         }
         outChunk.Column(r.outOrdinal).AppendNotNil()
-        outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.buf.value[idx])
+        outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.buf.value[idx])
         if r.auxProcessor != nil {
             r.appendInAuxCol(inChunk, outChunk, vs+r.buf.index[idx])
         }
@@ -1538,7 +1554,7 @@ func (r *{{.Name}}Col{{.Name}}HeapIterator) appendPrevItem(
 ) {
 	for j := range r.buf.items {
         outChunk.AppendTime(r.buf.items[j].time)
-        outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.buf.items[j].value)
+        outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.buf.items[j].value)
         outChunk.Column(r.outOrdinal).AppendNotNil()
     }
     if len(r.auxProcessor) > 0 {
@@ -1563,7 +1579,7 @@ func (r *{{.Name}}Col{{.Name}}HeapIterator) appendCurrItem(
 ) {
 	for j := range r.buf.items {
         outChunk.AppendTime(r.buf.items[j].time)
-        outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.buf.items[j].value)
+        outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.buf.items[j].value)
         outChunk.Column(r.outOrdinal).AppendNotNil()
     }
     if len(r.auxProcessor) > 0 {
@@ -1914,7 +1930,7 @@ func (r *{{.Name}}Col{{.Name}}DistinctIterator) processFirstWindow(
 		if r.buf.Len() > 0 {
 			for j := range r.buf.time {
 				outChunk.AppendTime(r.buf.time[j])
-				outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.buf.value[j])
+				outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.buf.value[j])
 				outChunk.Column(r.outOrdinal).AppendNotNil()
 			}
 			outChunk.AppendIntervalIndex(outChunk.Len() - r.buf.Len())
@@ -3273,7 +3289,7 @@ func (r *{{$k.Name}}Col{{$v.Name}}TransIterator) appendCurrItem(inChunk, outChun
 				continue
 			}
 			outChunk.AppendTime(time[j])
-			outChunk.Column(r.outOrdinal).Append{{$v.Name}}Values(value[j])
+			outChunk.Column(r.outOrdinal).Append{{$v.Name}}Value(value[j])
 			outChunk.Column(r.outOrdinal).AppendNotNil()
 		}
 		if nilCount == r.buf.Len() {
@@ -3289,7 +3305,7 @@ func (r *{{$k.Name}}Col{{$v.Name}}TransIterator) appendCurrItem(inChunk, outChun
 			outChunk.Column(r.outOrdinal).AppendNil()
 			continue
 		}
-		outChunk.Column(r.outOrdinal).Append{{$v.Name}}Values(value[j])
+		outChunk.Column(r.outOrdinal).Append{{$v.Name}}Value(value[j])
 		outChunk.Column(r.outOrdinal).AppendNotNil()
 	}
 }
@@ -3386,7 +3402,7 @@ func (r *IntegerColIntegerTransIterator) appendCurrItem(inChunk, outChunk Chunk,
 				continue
 			}
 			outChunk.AppendTime(time[j])
-			outChunk.Column(r.outOrdinal).AppendIntegerValues(value[j])
+			outChunk.Column(r.outOrdinal).AppendIntegerValue(value[j])
 			outChunk.Column(r.outOrdinal).AppendNotNil()
 		}
 		if nilCount == r.buf.Len() {
@@ -3402,7 +3418,7 @@ func (r *IntegerColIntegerTransIterator) appendCurrItem(inChunk, outChunk Chunk,
 			outChunk.Column(r.outOrdinal).AppendNil()
 			continue
 		}
-		outChunk.Column(r.outOrdinal).AppendIntegerValues(value[j])
+		outChunk.Column(r.outOrdinal).AppendIntegerValue(value[j])
 		outChunk.Column(r.outOrdinal).AppendNotNil()
 	}
 }
@@ -3812,7 +3828,7 @@ func (r *{{.Name}}Col{{.Name}}SampleIterator) appendPrevItem(
 ) {
 	for j := range r.buf.items {
 		outChunk.AppendTime(r.buf.items[j].time)
-		outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.buf.items[j].value)
+		outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.buf.items[j].value)
 		outChunk.Column(r.outOrdinal).AppendNotNil()
 	}
 	if len(r.auxProcessor) > 0 {
@@ -3877,7 +3893,7 @@ func (r *{{.Name}}Col{{.Name}}SampleIterator) appendCurrItem(
 ) {
 	for j := range r.buf.items {
 		outChunk.AppendTime(r.buf.items[j].time)
-		outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.buf.items[j].value)
+		outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.buf.items[j].value)
 		outChunk.Column(r.outOrdinal).AppendNotNil()
 	}
 	if len(r.auxProcessor) > 0 {
@@ -4046,7 +4062,7 @@ func (r *{{.Name}}SlidingWindow{{.Name}}Iterator) mergePrevWindow(
 			outChunk.Column(r.outOrdinal).AppendNil()
 		} else {
 			outChunk.Column(r.outOrdinal).AppendNotNil()
-			outChunk.Column(r.outOrdinal).Append{{.Name}}Values(r.prevWindow.points[i].value)
+			outChunk.Column(r.outOrdinal).Append{{.Name}}Value(r.prevWindow.points[i].value)
 		}
 	}
 }
@@ -4079,7 +4095,7 @@ func (r *{{.Name}}SlidingWindow{{.Name}}Iterator) processMiddleWindow(
 		outChunk.Column(r.outOrdinal).AppendNil()
 	} else {
 		outChunk.Column(r.outOrdinal).AppendNotNil()
-		outChunk.Column(r.outOrdinal).Append{{.Name}}Values(value)
+		outChunk.Column(r.outOrdinal).Append{{.Name}}Value(value)
 	}
 }
 
@@ -4278,7 +4294,7 @@ func (o *{{.Name}}OGSketchInsertItem) WriteResult(outChunk Chunk, time int64) {
 	}
 
 	for i := 0; i < clusterNum; i++ {
-		outChunk.Column(o.outOrdinal).AppendFloatTuples(floatTuple{values: []float64{o.clusters[i].Mean, o.clusters[i].Weight}})
+		outChunk.Column(o.outOrdinal).AppendFloatTuple(floatTuple{values: []float64{o.clusters[i].Mean, o.clusters[i].Weight}})
 	}
 	outChunk.Column(o.outOrdinal).AppendManyNotNil(clusterNum)
 
@@ -4328,9 +4344,9 @@ func (o *{{.Name}}OGSketchPercentileItem) WriteResult(outChunk Chunk, time int64
 		outChunk.AppendIntervalIndex(outChunk.Len() - 1)
 	}
 	{{- if eq .Name "Float"}}
-	outChunk.Column(o.outOrdinal).Append{{.Name}}Values(value)
+	outChunk.Column(o.outOrdinal).Append{{.Name}}Value(value)
 	{{- else}}
-	outChunk.Column(o.outOrdinal).Append{{.Name}}Values(int64(value))
+	outChunk.Column(o.outOrdinal).Append{{.Name}}Value(int64(value))
 	{{- end}}
 	outChunk.Column(o.outOrdinal).AppendNotNil()
 }
@@ -4381,9 +4397,9 @@ func (o *{{.Name}}PercentileApproxItem) WriteResult(outChunk Chunk, time int64) 
 		outChunk.AppendIntervalIndex(outChunk.Len() - 1)
 	}
 	{{- if eq .Name "Float"}}
-	outChunk.Column(o.outOrdinal).Append{{.Name}}Values(value)
+	outChunk.Column(o.outOrdinal).Append{{.Name}}Value(value)
 	{{- else}}
-	outChunk.Column(o.outOrdinal).Append{{.Name}}Values(int64(value))
+	outChunk.Column(o.outOrdinal).Append{{.Name}}Value(int64(value))
 	{{- end}}
 	outChunk.Column(o.outOrdinal).AppendNotNil()
 }
@@ -4436,7 +4452,7 @@ func (o *OGSketchMergeItem) WriteResult(outChunk Chunk, time int64) {
 	}
 
 	for i := 0; i < clusterNum; i++ {
-		outChunk.Column(o.outOrdinal).AppendFloatTuples(floatTuple{values: []float64{o.clusters[i].Mean, o.clusters[i].Weight}})
+		outChunk.Column(o.outOrdinal).AppendFloatTuple(floatTuple{values: []float64{o.clusters[i].Mean, o.clusters[i].Weight}})
 	}
 	outChunk.Column(o.outOrdinal).AppendManyNotNil(clusterNum)
 

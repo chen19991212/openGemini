@@ -56,19 +56,18 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver v1.4.2 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Masterminds/sprig v2.16.0+incompatible // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Masterminds/sprig/v3 v3.2.1 // indirect
 	github.com/VictoriaMetrics/metrics v1.18.0 // indirect
 	github.com/VictoriaMetrics/metricsql v0.26.0 // indirect
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 // indirect
-	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/apache/arrow/go/v11 v11.0.0 // indirect
 	github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/benbjohnson/immutable v0.2.1 // indirect
-	github.com/benbjohnson/tmpl v1.0.0 // indirect
+	github.com/benbjohnson/tmpl v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect

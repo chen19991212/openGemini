@@ -71,127 +71,134 @@ func NewProcessors(inRowDataType, outRowDataType hybridqp.RowDataType, exprOpt [
 				continue
 			}
 			name := exprOpt[i].Expr.(*influxql.Call).Name
-			switch name {
-			case "count":
-				routine, err = NewCountRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-			case "sum":
-				routine, err = NewSumRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-			case "first":
-				routine, err = NewFirstRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "last":
-				routine, err = NewLastRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "min":
-				routine, err = NewMinRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "max":
-				routine, err = NewMaxRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "percentile":
-				if isSubQuery {
-					isSingleCall = false
-				}
-				routine, err = NewPercentileRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "percentile_approx", "ogsketch_percentile", "ogsketch_merge", "ogsketch_insert":
-				var percentile float64
-				var clusterNum int
-				var err error
-				if isSubQuery {
-					isSingleCall = false
-				}
-				clusterNum, err = getClusterNum(exprOpt[i].Expr.(*influxql.Call), name)
-				if err != nil {
-					return nil, err
-				}
-				percentile, err = getPercentile(exprOpt[i].Expr.(*influxql.Call), name)
-				if err != nil {
-					return nil, err
-				}
-				percentile /= 100
-				routine, err = NewPercentileApproxRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, opt, name, clusterNum, percentile)
-				if err != nil {
-					return nil, err
-				}
-				coProcessor.AppendRoutine(routine)
-				if name == "ogsketch_insert" || name == "ogsketch_merge" {
-					proRes.isCompositeCall = true
-					proRes.clusterNum = clusterNum
-				}
-			case "median":
-				routine, err = NewMedianRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-			case "mode":
-				routine, err = NewModeRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-			case "top":
-				routine, err = NewTopRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "bottom":
-				routine, err = NewBottomRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			case "distinct":
-				routine, err = NewDistinctRoutineImpl(inRowDataType, outRowDataType, exprOpt[i])
-				coProcessor.AppendRoutine(routine)
-			case "difference", "non_negative_difference":
-				isNonNegative := name == "non_negative_difference"
-				routine, err = NewDifferenceRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
-					isSingleCall, isNonNegative)
-				coProcessor.AppendRoutine(routine)
-				proRes.isTimeUniqueCall = true
-				proRes.offset = 1
-			case "derivative", "non_negative_derivative":
-				isNonNegative := name == "non_negative_derivative"
+			if _, ok := AggOperator[name]; ok {
 				interval := exprOpt[i].DerivativeInterval(opt.Interval)
-				routine, err = NewDerivativeRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
-					isSingleCall, isNonNegative, opt.Ascending, interval)
+				routine, err = AggOperator[name].NewRoutinue(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor, interval)
 				coProcessor.AppendRoutine(routine)
-				proRes.isTimeUniqueCall = true
-				proRes.offset = 1
-			case "elapsed":
-				routine, err = NewElapsedRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
-					isSingleCall)
-				coProcessor.AppendRoutine(routine)
-				proRes.isTransformationCall = true
-				proRes.offset = 1
-			case "moving_average":
-				routine, err = NewMovingAverageRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-				proRes.isTransformationCall = true
-				expr, _ := exprOpt[i].Expr.(*influxql.Call)
-				n, _ := expr.Args[len(expr.Args)-1].(*influxql.IntegerLiteral)
-				proRes.offset = int(n.Val) - 1
-			case "cumulative_sum":
-				routine, err = NewCumulativeSumRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-				proRes.isTransformationCall = true
-				proRes.offset = 0
-			case "integral":
-				routine, err = NewIntegralRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], opt,
-					isSingleCall)
-				coProcessor.AppendRoutine(routine)
-				proRes.isIntegralCall = true
-			case "rate", "irate":
-				isRate := name == "rate"
-				interval := exprOpt[i].DerivativeInterval(opt.Interval)
-				routine, err = NewRateRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
-					isSingleCall, isRate, interval)
-				coProcessor.AppendRoutine(routine)
-			case "absent":
-				routine, err = NewAbsentRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-			case "stddev":
-				routine, err = NewStddevRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
-				coProcessor.AppendRoutine(routine)
-			case "sample":
-				routine, err = NewSampleRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
-				coProcessor.AppendRoutine(routine)
-			default:
-				return nil, errors.New("unsupported aggregation operator of call processor")
+			} else {
+				switch name {
+				case "count":
+					routine, err = NewCountRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+				case "sum":
+					routine, err = NewSumRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+				case "first":
+					routine, err = NewFirstRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
+					coProcessor.AppendRoutine(routine)
+				// case "last":
+				// 	routine, err = NewLastRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
+				// 	coProcessor.AppendRoutine(routine)
+				case "min":
+					routine, err = NewMinRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
+					coProcessor.AppendRoutine(routine)
+				// case "max":
+				// 	routine, err = NewMaxRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
+				// 	coProcessor.AppendRoutine(routine)
+				case "percentile":
+					if isSubQuery {
+						isSingleCall = false
+					}
+					routine, err = NewPercentileRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
+					coProcessor.AppendRoutine(routine)
+				case "percentile_approx", "ogsketch_percentile", "ogsketch_merge", "ogsketch_insert":
+					var percentile float64
+					var clusterNum int
+					var err error
+					if isSubQuery {
+						isSingleCall = false
+					}
+					clusterNum, err = getClusterNum(exprOpt[i].Expr.(*influxql.Call), name)
+					if err != nil {
+						return nil, err
+					}
+					percentile, err = getPercentile(exprOpt[i].Expr.(*influxql.Call), name)
+					if err != nil {
+						return nil, err
+					}
+					percentile /= 100
+					routine, err = NewPercentileApproxRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, opt, name, clusterNum, percentile)
+					if err != nil {
+						return nil, err
+					}
+					coProcessor.AppendRoutine(routine)
+					if name == "ogsketch_insert" || name == "ogsketch_merge" {
+						proRes.isCompositeCall = true
+						proRes.clusterNum = clusterNum
+					}
+				case "median":
+					routine, err = NewMedianRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+				case "mode":
+					routine, err = NewModeRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+				case "top":
+					routine, err = NewTopRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], auxProcessor)
+					coProcessor.AppendRoutine(routine)
+				case "bottom":
+					routine, err = NewBottomRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], auxProcessor)
+					coProcessor.AppendRoutine(routine)
+				case "distinct":
+					routine, err = NewDistinctRoutineImpl(inRowDataType, outRowDataType, exprOpt[i])
+					coProcessor.AppendRoutine(routine)
+				case "difference", "non_negative_difference":
+					isNonNegative := name == "non_negative_difference"
+					routine, err = NewDifferenceRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
+						isSingleCall, isNonNegative)
+					coProcessor.AppendRoutine(routine)
+					proRes.isTimeUniqueCall = true
+					proRes.offset = 1
+				case "derivative", "non_negative_derivative":
+					isNonNegative := name == "non_negative_derivative"
+					interval := exprOpt[i].DerivativeInterval(opt.Interval)
+					routine, err = NewDerivativeRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
+						isSingleCall, isNonNegative, opt.Ascending, interval)
+					coProcessor.AppendRoutine(routine)
+					proRes.isTimeUniqueCall = true
+					proRes.offset = 1
+				case "elapsed":
+					routine, err = NewElapsedRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
+						isSingleCall)
+					coProcessor.AppendRoutine(routine)
+					proRes.isTransformationCall = true
+					proRes.offset = 1
+				case "moving_average":
+					routine, err = NewMovingAverageRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+					proRes.isTransformationCall = true
+					expr, _ := exprOpt[i].Expr.(*influxql.Call)
+					n, _ := expr.Args[len(expr.Args)-1].(*influxql.IntegerLiteral)
+					proRes.offset = int(n.Val) - 1
+				case "cumulative_sum":
+					routine, err = NewCumulativeSumRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+					proRes.isTransformationCall = true
+					proRes.offset = 0
+				case "integral":
+					routine, err = NewIntegralRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], opt,
+						isSingleCall)
+					coProcessor.AppendRoutine(routine)
+					proRes.isIntegralCall = true
+				case "rate", "irate":
+					isRate := name == "rate"
+					interval := exprOpt[i].DerivativeInterval(opt.Interval)
+					routine, err = NewRateRoutineImpl(inRowDataType, outRowDataType, exprOpt[i],
+						isSingleCall, isRate, interval)
+					coProcessor.AppendRoutine(routine)
+				case "absent":
+					routine, err = NewAbsentRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+				case "stddev":
+					routine, err = NewStddevRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall)
+					coProcessor.AppendRoutine(routine)
+				case "sample":
+					routine, err = NewSampleRoutineImpl(inRowDataType, outRowDataType, exprOpt[i], isSingleCall, auxProcessor)
+					coProcessor.AppendRoutine(routine)
+				default:
+					return nil, errors.New("unsupported aggregation operator of call processor")
+				}
 			}
+
 		default:
 			continue
 		}
@@ -473,7 +480,7 @@ func NewFirstRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt
 	}
 }
 
-func NewLastRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt hybridqp.ExprOptions, isSingleCall bool, auxProcessor []*AuxProcessor) (Routine, error) {
+func NewLastRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt hybridqp.ExprOptions, isSingleCall bool, auxProcessor []*AuxProcessor, interval hybridqp.Interval) (Routine, error) {
 	inOrdinal := inRowDataType.FieldIndex(opt.Expr.(*influxql.Call).Args[0].(*influxql.VarRef).Val)
 	outOrdinal := outRowDataType.FieldIndex(opt.Ref.Val)
 	if inOrdinal < 0 || outOrdinal < 0 {
@@ -547,7 +554,7 @@ func NewMinRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt h
 	}
 }
 
-func NewMaxRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt hybridqp.ExprOptions, isSingleCall bool, auxProcessor []*AuxProcessor) (Routine, error) {
+func NewMaxRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt hybridqp.ExprOptions, isSingleCall bool, auxProcessor []*AuxProcessor, interval hybridqp.Interval) (Routine, error) {
 	inOrdinal := inRowDataType.FieldIndex(opt.Expr.(*influxql.Call).Args[0].(*influxql.VarRef).Val)
 	outOrdinal := outRowDataType.FieldIndex(opt.Ref.Val)
 	if inOrdinal < 0 || outOrdinal < 0 {
@@ -919,6 +926,27 @@ func NewCumulativeSumRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataT
 	default:
 		return nil, errno.NewError(errno.UnsupportedDataType, "cumulative_sum", dataType.String())
 	}
+}
+
+func NewRate2RoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt hybridqp.ExprOptions,
+	isSingleCall bool, auxProcessor []*AuxProcessor, interval hybridqp.Interval) (Routine, error) {
+	inOrdinal := inRowDataType.FieldIndex(opt.Expr.(*influxql.Call).Args[0].(*influxql.VarRef).Val)
+	outOrdinal := outRowDataType.FieldIndex(opt.Ref.Val)
+	if inOrdinal < 0 || outOrdinal < 0 {
+		panic("input and output schemas are not aligned for rate iterator")
+	}
+	dataType := inRowDataType.Field(inOrdinal).Expr.(*influxql.VarRef).Type
+	switch dataType {
+	case influxql.Float:
+		return NewRoutineImpl(NewFloatColFloatTimeSliceIterator(FloatRate2Reduce(interval.Duration), isSingleCall, inOrdinal, outOrdinal, nil, outRowDataType), inOrdinal, outOrdinal), nil
+	case influxql.Integer:
+		return NewRoutineImpl(NewIntegerColFloatRateIterator(IntegerRateMiddleReduce, IntegerRateFinalReduce,
+			IntegerRateUpdate, IntegerRateMerge, isSingleCall, inOrdinal, outOrdinal, outRowDataType, &interval),
+			inOrdinal, outOrdinal), nil
+	default:
+		return nil, errno.NewError(errno.UnsupportedDataType, "irate/rate", dataType.String())
+	}
+
 }
 
 func NewRateRoutineImpl(inRowDataType, outRowDataType hybridqp.RowDataType, opt hybridqp.ExprOptions,

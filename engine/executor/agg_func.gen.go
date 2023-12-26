@@ -25,6 +25,7 @@ import (
 	"bytes"
 	"math"
 	"sort"
+	"time"
 
 	"github.com/openGemini/openGemini/engine/hybridqp"
 )
@@ -1614,6 +1615,24 @@ func FloatRateLowReduce(c Chunk, ordinal, start, end int) (int, int, float64, fl
 		}
 	}
 	return firstIndex, lastIndex, firstValue, lastValue, false
+}
+
+func FloatRate2Reduce(duration time.Duration)FloatColReduceTimeSliceReduce {
+	return func(floatSliceItem *FloatTimeSliceItem)(int,int64,float64,bool){
+		length := len(floatSliceItem.value)
+	if length == 0 {
+		return -1, 0, 0, true
+	}
+	if length == 1 {
+		return -1, floatSliceItem.time[0], float64(floatSliceItem.value[0]), false
+	}
+
+	sort.Stable(floatSliceItem)
+
+	rate := float64(floatSliceItem.value[len(floatSliceItem.value) - 1] - floatSliceItem.value[0])/ float64(floatSliceItem.time[len(floatSliceItem.time)] - floatSliceItem.time[0]) / float64(duration)
+	return -1, floatSliceItem.time[0], rate, false
+	}
+	
 }
 
 func FloatRateMiddleReduce(c Chunk, ordinal, start, end int) (int, int, float64, float64, bool) {
