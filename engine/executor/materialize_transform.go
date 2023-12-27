@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/openGemini/openGemini/engine/executor/operator"
 	"github.com/openGemini/openGemini/engine/hybridqp"
 	"github.com/openGemini/openGemini/engine/op"
 	"github.com/openGemini/openGemini/lib/tracing"
@@ -353,7 +352,7 @@ func NewMaterializeTransform(inRowDataType hybridqp.RowDataType, outRowDataType 
 		Valuer: influxql.MultiValuer(
 			op.Valuer{},
 			query.MathValuer{},
-			operator.StringValuer{},
+			query.StringValuer{},
 			trans.chunkValuer,
 		),
 		IntegerFloatDivision: true,

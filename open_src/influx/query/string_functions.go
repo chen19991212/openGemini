@@ -1,4 +1,4 @@
-package operator
+package query
 
 import (
 	"fmt"
@@ -8,42 +8,20 @@ import (
 	"github.com/openGemini/openGemini/open_src/influx/influxql"
 )
 
+type strFunc struct {
+}
+
+var _ = RegistryFunction("str", &strFunc{})
+
 // compile functions
-func compileStr(expr *influxql.Call) error {
+func (s *strFunc) CompileFunc(expr *influxql.Call) error {
 	if _, ok := expr.Args[1].(*influxql.StringLiteral); !ok {
 		return fmt.Errorf("expected string argument in str()")
 	}
 	return nil
 }
 
-func compileStrlen(expr *influxql.Call) error {
-	return nil
-}
-
-func compileSubstr(expr *influxql.Call) error {
-	const NARGS = 1
-	// Did we get the expected number of args?
-	if got := len(expr.Args); expr.Name == "substr" && (len(expr.Args) < 2 || len(expr.Args) > 3) {
-		return fmt.Errorf("invalid number of arguments for %s, expected %d, got %d", expr.Name, NARGS, got)
-	}
-
-	if got := len(expr.Args); expr.Name != "substr" && got != 1 {
-		return fmt.Errorf("invalid number of arguments for %s, expected %d, got %d", expr.Name, NARGS, got)
-	}
-
-	if second, ok := expr.Args[1].(*influxql.IntegerLiteral); !ok || second.Val < 0 {
-		return fmt.Errorf("expected non-gegative integer argument in substr()")
-	}
-	if len(expr.Args) == 3 {
-		if third, ok := expr.Args[2].(*influxql.IntegerLiteral); !ok || third.Val < 0 {
-			return fmt.Errorf("expected non-gegative integer argument in substr()")
-		}
-	}
-	return nil
-}
-
-// call type
-func strCallType(name string, args []influxql.DataType) (influxql.DataType, error) {
+func (s *strFunc) CallTypeFunc(name string, args []influxql.DataType) (influxql.DataType, error) {
 	var arg0, arg1 influxql.DataType
 	if len(args) != 2 {
 		return influxql.Unknown, fmt.Errorf("invalid argument number in %s(): %d", name, len(args))
@@ -65,7 +43,31 @@ func strCallType(name string, args []influxql.DataType) (influxql.DataType, erro
 	}
 }
 
-func strLenCallType(name string, args []influxql.DataType) (influxql.DataType, error) {
+func (s *strFunc) CallFunc(name string, args []interface{}) (interface{}, bool) {
+	if len(args) != 2 {
+		return nil, false
+	}
+	arg0, ok := args[0].(string)
+	if !ok {
+		return nil, true
+	}
+	arg1, ok := args[0].(string)
+	if !ok {
+		return nil, true
+	}
+	return strings.Contains(arg0, arg1), true
+}
+
+type strLenFunc struct {
+}
+
+var _ = RegistryFunction("strLen", &strLenFunc{})
+
+func (s *strLenFunc) CompileFunc(expr *influxql.Call) error {
+	return nil
+}
+
+func (s *strLenFunc) CallTypeFunc(name string, args []influxql.DataType) (influxql.DataType, error) {
 	var arg0 influxql.DataType
 	if len(args) != 1 {
 		return influxql.Unknown, fmt.Errorf("invalid argument number in %s(): %d", name, len(args))
@@ -79,7 +81,45 @@ func strLenCallType(name string, args []influxql.DataType) (influxql.DataType, e
 	}
 }
 
-func subStrCallType(name string, args []influxql.DataType) (influxql.DataType, error) {
+func (s *strLenFunc) CallFunc(name string, args []interface{}) (interface{}, bool) {
+	if len(args) != 1 {
+		return nil, false
+	}
+	if arg0, ok := args[0].(string); ok {
+		return int64(len(arg0)), true
+	}
+	return nil, true
+}
+
+type subStrFunc struct {
+}
+
+/* subStr */
+var _ = RegistryFunction("subStr", &subStrFunc{})
+
+func (s *subStrFunc) CompileFunc(expr *influxql.Call) error {
+	const NARGS = 1
+	// Did we get the expected number of args?
+	if got := len(expr.Args); expr.Name == "substr" && (len(expr.Args) < 2 || len(expr.Args) > 3) {
+		return fmt.Errorf("invalid number of arguments for %s, expected %d, got %d", expr.Name, NARGS, got)
+	}
+
+	if got := len(expr.Args); expr.Name != "substr" && got != 1 {
+		return fmt.Errorf("invalid number of arguments for %s, expected %d, got %d", expr.Name, NARGS, got)
+	}
+
+	if second, ok := expr.Args[1].(*influxql.IntegerLiteral); !ok || second.Val < 0 {
+		return fmt.Errorf("expected non-gegative integer argument in substr()")
+	}
+	if len(expr.Args) == 3 {
+		if third, ok := expr.Args[2].(*influxql.IntegerLiteral); !ok || third.Val < 0 {
+			return fmt.Errorf("expected non-gegative integer argument in substr()")
+		}
+	}
+	return nil
+}
+
+func (s *subStrFunc) CallTypeFunc(name string, args []influxql.DataType) (influxql.DataType, error) {
 	var arg0, arg1, arg2 influxql.DataType
 	if len(args) < 2 || len(args) > 3 {
 		return influxql.Unknown, fmt.Errorf("invalid argument number in %s(): %d", name, len(args))
@@ -113,33 +153,7 @@ func subStrCallType(name string, args []influxql.DataType) (influxql.DataType, e
 	}
 }
 
-// call functions
-func strCall(name string, args []interface{}) (interface{}, bool) {
-	if len(args) != 2 {
-		return nil, false
-	}
-	arg0, ok := args[0].(string)
-	if !ok {
-		return nil, true
-	}
-	arg1, ok := args[0].(string)
-	if !ok {
-		return nil, true
-	}
-	return strings.Contains(arg0, arg1), true
-}
-
-func strlenCallFunc(name string, args []interface{}) (interface{}, bool) {
-	if len(args) != 1 {
-		return nil, false
-	}
-	if arg0, ok := args[0].(string); ok {
-		return int64(len(arg0)), true
-	}
-	return nil, true
-}
-
-func substrCallFunc(name string, args []interface{}) (interface{}, bool) {
+func (s *subStrFunc) CallFunc(name string, args []interface{}) (interface{}, bool) {
 	var (
 		arg0 string
 		arg1 int64
@@ -192,24 +206,6 @@ func SubStrThreeParaFunc(srcStr string, start, subStrLen int64) string {
 	return util.Bytes2str(newStr)
 }
 
-var StringFunctions = map[string]*Function{
-	"str": {
-		Name:         "str",
-		CallTypeFunc: strCallType,
-		CallFunc:     strCall,
-	},
-	"strlen": {
-		Name:         "strlen",
-		CallTypeFunc: strLenCallType,
-		CallFunc:     strlenCallFunc,
-	},
-	"substr": {
-		Name:         "substr",
-		CallTypeFunc: subStrCallType,
-		CallFunc:     substrCallFunc,
-	},
-}
-
 // type mapper
 
 type StringFunctionTypeMapper struct{}
@@ -223,8 +219,8 @@ func (m StringFunctionTypeMapper) MapTypeBatch(_ *influxql.Measurement, _ map[st
 }
 
 func (m StringFunctionTypeMapper) CallType(name string, args []influxql.DataType) (influxql.DataType, error) {
-	if _, ok := StringFunctions[name]; ok {
-		return StringFunctions[name].CallTypeFunc(name, args)
+	if function, ok := GetFunctionFactoryInstance().Find(name); ok {
+		return function.CallTypeFunc(name, args)
 	}
 	return influxql.Unknown, nil
 }
@@ -244,8 +240,8 @@ func (StringValuer) SetValuer(_ influxql.Valuer, _ int) {
 }
 
 func (v StringValuer) Call(name string, args []interface{}) (interface{}, bool) {
-	if _, ok := StringFunctions[name]; ok {
-		return StringFunctions[name].CallFunc(name, args)
+	if function, ok := GetFunctionFactoryInstance().Find(name); ok {
+		return function.CallFunc(name, args)
 	}
 	return nil, false
 }

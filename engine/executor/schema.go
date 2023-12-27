@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/openGemini/openGemini/engine/executor/operator"
 	"github.com/openGemini/openGemini/engine/hybridqp"
 	"github.com/openGemini/openGemini/engine/op"
 	"github.com/openGemini/openGemini/lib/errno"
@@ -60,7 +59,7 @@ var DefaultTypeMapper = influxql.MultiTypeMapper(
 	op.TypeMapper{},
 	query.MathTypeMapper{},
 	query.FunctionTypeMapper{},
-	operator.StringFunctionTypeMapper{},
+	query.StringFunctionTypeMapper{},
 )
 
 type QueryTable struct {

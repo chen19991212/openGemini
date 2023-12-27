@@ -35,7 +35,6 @@ import (
 	"github.com/influxdata/influxdb/models"
 	originql "github.com/influxdata/influxql"
 	"github.com/openGemini/openGemini/app/ts-meta/meta/message"
-	"github.com/openGemini/openGemini/engine/executor/operator"
 	"github.com/openGemini/openGemini/engine/executor/spdy"
 	"github.com/openGemini/openGemini/engine/executor/spdy/transport"
 	"github.com/openGemini/openGemini/engine/op"
@@ -127,7 +126,7 @@ var DefaultTypeMapper = influxql.MultiTypeMapper(
 	op.TypeMapper{},
 	query.MathTypeMapper{},
 	query.FunctionTypeMapper{},
-	operator.StringFunctionTypeMapper{},
+	query.StringFunctionTypeMapper{},
 )
 
 var DefaultMetaClient *Client

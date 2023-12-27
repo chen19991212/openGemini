@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openGemini/openGemini/engine/executor/operator"
 	"github.com/openGemini/openGemini/engine/hybridqp"
 	"github.com/openGemini/openGemini/lib/config"
 	"github.com/openGemini/openGemini/open_src/influx/influxql"
@@ -606,7 +605,7 @@ func validateTypes(stmt *influxql.SelectStatement) error {
 		TypeMapper: influxql.MultiTypeMapper(
 			FunctionTypeMapper{},
 			MathTypeMapper{},
-			operator.StringFunctionTypeMapper{},
+			StringFunctionTypeMapper{},
 		),
 	}
 	for _, f := range stmt.Fields {
