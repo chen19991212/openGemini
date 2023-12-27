@@ -8,10 +8,23 @@ import (
 	"github.com/openGemini/openGemini/open_src/influx/influxql"
 )
 
-type strFunc struct {
+func init() {
+	var (
+		_ = RegistryMaterializeFunction("str", &strFunc{
+			BaseInfo: BaseInfo{FuncType: STRING},
+		})
+		_ = RegistryMaterializeFunction("strlen", &strLenFunc{
+			BaseInfo: BaseInfo{FuncType: STRING},
+		})
+		_ = RegistryMaterializeFunction("substr", &subStrFunc{
+			BaseInfo: BaseInfo{FuncType: STRING},
+		})
+	)
 }
 
-var _ = RegistryFunction("str", &strFunc{})
+type strFunc struct {
+	BaseInfo
+}
 
 // compile functions
 func (s *strFunc) CompileFunc(expr *influxql.Call) error {
@@ -59,9 +72,8 @@ func (s *strFunc) CallFunc(name string, args []interface{}) (interface{}, bool) 
 }
 
 type strLenFunc struct {
+	BaseInfo
 }
-
-var _ = RegistryFunction("strLen", &strLenFunc{})
 
 func (s *strLenFunc) CompileFunc(expr *influxql.Call) error {
 	return nil
@@ -92,10 +104,10 @@ func (s *strLenFunc) CallFunc(name string, args []interface{}) (interface{}, boo
 }
 
 type subStrFunc struct {
+	BaseInfo
 }
 
 /* subStr */
-var _ = RegistryFunction("subStr", &subStrFunc{})
 
 func (s *subStrFunc) CompileFunc(expr *influxql.Call) error {
 	const NARGS = 1
@@ -219,7 +231,7 @@ func (m StringFunctionTypeMapper) MapTypeBatch(_ *influxql.Measurement, _ map[st
 }
 
 func (m StringFunctionTypeMapper) CallType(name string, args []influxql.DataType) (influxql.DataType, error) {
-	if function, ok := GetFunctionFactoryInstance().Find(name); ok {
+	if function, ok := GetFunctionFactoryInstance().FindMaterFunc(name); ok {
 		return function.CallTypeFunc(name, args)
 	}
 	return influxql.Unknown, nil
@@ -240,7 +252,7 @@ func (StringValuer) SetValuer(_ influxql.Valuer, _ int) {
 }
 
 func (v StringValuer) Call(name string, args []interface{}) (interface{}, bool) {
-	if function, ok := GetFunctionFactoryInstance().Find(name); ok {
+	if function, ok := GetFunctionFactoryInstance().FindMaterFunc(name); ok {
 		return function.CallFunc(name, args)
 	}
 	return nil, false

@@ -6,40 +6,86 @@ import (
 	"github.com/openGemini/openGemini/open_src/influx/influxql"
 )
 
+const (
+	STRING = iota
+	MATH
+	AGG_NORMAL
+	AGG_SLICE
+)
+
+type BaseInfo struct {
+	FuncType int
+}
+
+func (b *BaseInfo) GetFuncType() int {
+	return b.FuncType
+}
+
 type MaterializeFunc interface {
 	CompileFunc(expr *influxql.Call) error
 	CallTypeFunc(name string, args []influxql.DataType) (influxql.DataType, error)
 	CallFunc(name string, args []interface{}) (interface{}, bool)
+	GetFuncType() int
 }
 
-func RegistryFunction(name string, function MaterializeFunc) bool {
+type AggregateFunc interface {
+	CompileFunc(expr *influxql.Call) error
+	CallTypeFunc(name string, args []influxql.DataType) (influxql.DataType, error)
+	GetFuncType() int
+	OnlySelectors() bool
+}
+
+type FunctionFactory struct {
+	materialize map[string]MaterializeFunc
+	aggregate   map[string]AggregateFunc
+}
+
+func NewFunctionFactory() *FunctionFactory {
+	return &FunctionFactory{
+		materialize: make(map[string]MaterializeFunc),
+		aggregate:   make(map[string]AggregateFunc),
+	}
+}
+
+func RegistryMaterializeFunction(name string, function MaterializeFunc) bool {
 	factory := GetFunctionFactoryInstance()
-	_, ok := factory.Find(name)
+	_, ok := factory.FindMaterFunc(name)
 
 	if ok {
 		return ok
 	}
 
-	factory.Add(name, function)
+	factory.AddMaterFunc(name, function)
 	return ok
 }
 
-type FunctionFactory struct {
-	functions map[string]MaterializeFunc
+func (r *FunctionFactory) AddMaterFunc(name string, function MaterializeFunc) {
+	r.materialize[name] = function
 }
 
-func NewFunctionFactory() *FunctionFactory {
-	return &FunctionFactory{
-		functions: make(map[string]MaterializeFunc),
+func (r *FunctionFactory) FindMaterFunc(name string) (MaterializeFunc, bool) {
+	function, ok := r.materialize[name]
+	return function, ok
+}
+
+func RegistryAggregateFunction(name string, function AggregateFunc) bool {
+	factory := GetFunctionFactoryInstance()
+	_, ok := factory.FindAggFunc(name)
+
+	if ok {
+		return ok
 	}
+
+	factory.AddAggFunc(name, function)
+	return ok
 }
 
-func (r *FunctionFactory) Add(name string, function MaterializeFunc) {
-	r.functions[name] = function
+func (r *FunctionFactory) AddAggFunc(name string, function AggregateFunc) {
+	r.aggregate[name] = function
 }
 
-func (r *FunctionFactory) Find(name string) (MaterializeFunc, bool) {
-	function, ok := r.functions[name]
+func (r *FunctionFactory) FindAggFunc(name string) (AggregateFunc, bool) {
+	function, ok := r.aggregate[name]
 	return function, ok
 }
 

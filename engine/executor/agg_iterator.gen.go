@@ -612,6 +612,20 @@ type IntegerColIntegerIterator struct {
 	auxProcessor []*AuxProcessor
 }
 
+type IntegerColIntegerBaseIterator struct{
+	inOrdinal    int
+	outOrdinal   int
+}
+
+func (r *IntegerColIntegerBaseIterator) Next(ie *IteratorEndpoint, p *IteratorParams) {
+	inChunk, outChunk := ie.InputPoint.Chunk, ie.OutputPoint.Chunk
+	
+}
+
+func NewBaseIterator(){
+	
+}
+
 func NewIntegerColIntegerIterator(fn IntegerColIntegerReduce, fv IntegerColIntegerMerge,
 	isSingleCall bool, inOrdinal, outOrdinal int, auxProcessor []*AuxProcessor, rowDataType hybridqp.RowDataType,
 ) *IntegerColIntegerIterator {

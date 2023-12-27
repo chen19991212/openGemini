@@ -312,7 +312,10 @@ func (c *compiledField) compileExpr(expr influxql.Expr) error {
 		if isMathFunction(expr) {
 			return c.compileMathFunction(expr)
 		}
-		if isStringFunction(expr) {
+
+		materialize, ok := GetFunctionFactoryInstance().FindMaterFunc(expr.Name)
+		if ok && materialize.GetFuncType() == STRING {
+			materialize.CompileFunc(expr)
 			return c.compileStringFunction(expr)
 		}
 
@@ -479,39 +482,8 @@ func (c *compiledField) compileStringFunction(expr *influxql.Call) error {
 	// Validate the function call and mark down some meta properties
 	// related to the function for query validation.
 	// var nargs int
-	if function, ok := GetFunctionFactoryInstance().Find(expr.Name); ok {
-		function.CompileFunc(expr)
-	}
-	// switch expr.Name {
-	// case "str":
-	// 	nargs = 2
-	// default:
-	// 	nargs = 1
-	// }
-	// Did we get the expected number of args?
-	// if got := len(expr.Args); expr.Name == "substr" && (len(expr.Args) < 2 || len(expr.Args) > 3) {
-	// 	return fmt.Errorf("invalid number of arguments for %s, expected %d, got %d", expr.Name, nargs, got)
-	// }
-
-	// if got := len(expr.Args); expr.Name != "substr" && got != nargs {
-	// 	return fmt.Errorf("invalid number of arguments for %s, expected %d, got %d", expr.Name, nargs, got)
-	// }
-
-	// // Input type and value verification
-	// switch expr.Name {
-	// case "str":
-	// 	if _, ok := expr.Args[1].(*influxql.StringLiteral); !ok {
-	// 		return fmt.Errorf("expected string argument in str()")
-	// 	}
-	// case "substr":
-	// 	if second, ok := expr.Args[1].(*influxql.IntegerLiteral); !ok || second.Val < 0 {
-	// 		return fmt.Errorf("expected non-gegative integer argument in substr()")
-	// 	}
-	// 	if len(expr.Args) == 3 {
-	// 		if third, ok := expr.Args[2].(*influxql.IntegerLiteral); !ok || third.Val < 0 {
-	// 			return fmt.Errorf("expected non-gegative integer argument in substr()")
-	// 		}
-	// 	}
+	// if function, ok := GetFunctionFactoryInstance().Find(expr.Name); ok {
+	// 	function.CompileFunc(expr)
 	// }
 
 	// Compile all the argument expressions that are not just literals.
@@ -1127,7 +1099,10 @@ func (c *compiledField) compileCall(expr *influxql.Call) error {
 	if isMathFunction(expr) {
 		return c.compileMathFunction(expr)
 	}
-	if isStringFunction(expr) {
+
+	materialize, ok := GetFunctionFactoryInstance().FindMaterFunc(expr.Name)
+	if materialize.GetFuncType() == STRING && ok {
+		materialize.CompileFunc(expr)
 		return c.compileStringFunction(expr)
 	}
 

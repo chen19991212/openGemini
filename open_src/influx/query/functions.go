@@ -33,30 +33,30 @@ func (m FieldMapper) CallType(name string, args []influxql.DataType) (influxql.D
 // CallTypeMapper returns the types for call iterator functions.
 // Call iterator functions are commonly implemented within the storage engine
 // so this mapper is limited to only the return values of those functions.
-type CallTypeMapper struct{}
+// type CallTypeMapper struct{}
 
-func (CallTypeMapper) MapType(measurement *influxql.Measurement, field string) influxql.DataType {
-	return influxql.Unknown
-}
+// func (CallTypeMapper) MapType(measurement *influxql.Measurement, field string) influxql.DataType {
+// 	return influxql.Unknown
+// }
 
-func (CallTypeMapper) MapTypeBatch(measurement *influxql.Measurement, field map[string]*influxql.FieldNameSpace, schema *influxql.Schema) error {
-	return nil
-}
+// func (CallTypeMapper) MapTypeBatch(measurement *influxql.Measurement, field map[string]*influxql.FieldNameSpace, schema *influxql.Schema) error {
+// 	return nil
+// }
 
-func (CallTypeMapper) CallType(name string, args []influxql.DataType) (influxql.DataType, error) {
-	// If the function is not implemented by the embedded field mapper, then
-	// see if we implement the function and return the type here.
-	switch name {
-	case "mean":
-		return influxql.Float, nil
-	case "count":
-		return influxql.Integer, nil
-	case "min", "max", "sum", "first", "last":
-		// TODO(jsternberg): Verify the input type.
-		return args[0], nil
-	}
-	return influxql.Unknown, nil
-}
+// func (CallTypeMapper) CallType(name string, args []influxql.DataType) (influxql.DataType, error) {
+// 	// If the function is not implemented by the embedded field mapper, then
+// 	// see if we implement the function and return the type here.
+// 	switch name {
+// 	case "mean":
+// 		return influxql.Float, nil
+// 	case "count":
+// 		return influxql.Integer, nil
+// 	case "min", "max", "sum", "first", "last":
+// 		// TODO(jsternberg): Verify the input type.
+// 		return args[0], nil
+// 	}
+// 	return influxql.Unknown, nil
+// }
 
 // FunctionTypeMapper handles the type mapping for all functions implemented by the
 // query engine.
